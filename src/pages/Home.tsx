@@ -36,6 +36,7 @@ export default function Home() {
           </Link>
         ))}
       </div>
+      <footer className="version">v{__APP_VERSION__}</footer>
     </div>
   );
 }
