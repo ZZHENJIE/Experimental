@@ -15,6 +15,12 @@ const TOOLS: Tool[] = [
     title: "指数目标价计算器",
     desc: "由杠杆 ETF 目标价反推指数需要的涨跌幅，支持做多 / 做空方向。",
   },
+  {
+    path: "/tools/chan-kline",
+    icon: "🕯️",
+    title: "缠论 K 线图",
+    desc: "SOXL 5 分钟 K 线：包含处理、分型、笔（新笔）、线段与中枢识别及可视化。",
+  },
 ];
 
 export default function Home() {

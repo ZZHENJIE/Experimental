@@ -147,6 +147,106 @@ input:hover:not(:focus) { border-color: #3d444d; }
   font-size: 13px;
 }
 
+/* ===== 缠论 K 线图 ===== */
+.card.wide { max-width: 1100px; }
+
+.loading {
+  margin-top: 20px;
+  padding: 12px 16px;
+  background: #0e1117;
+  border-radius: 10px;
+  color: #8b949e;
+  font-size: 13px;
+}
+
+.chan-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+.chan-controls .field.num {
+  flex: 0 0 160px;
+}
+.chan-controls input[type="number"] {
+  width: 100%;
+}
+
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #e6e8eb;
+  cursor: pointer;
+  padding: 8px 10px;
+  background: #0e1117;
+  border: 1px solid #2a3038;
+  border-radius: 8px;
+  user-select: none;
+}
+.toggle:hover { border-color: #3d444d; }
+.toggle input { accent-color: #4c8dff; cursor: pointer; }
+
+.btn {
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid #2a3038;
+  background: #0e1117;
+  color: #8b949e;
+  font-size: 13px;
+  cursor: pointer;
+}
+.btn:hover { color: #e6e8eb; border-color: #4c8dff; }
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  font-size: 12px;
+  color: #8b949e;
+  background: #0e1117;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.stats b {
+  color: #e6e8eb;
+  font-family: ui-monospace, Menlo, monospace;
+  font-weight: 600;
+}
+
+.chart-wrap {
+  height: 540px;
+  border: 1px solid #2a3038;
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin-top: 12px;
+  font-size: 12px;
+  color: #8b949e;
+}
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.swatch {
+  display: inline-block;
+  width: 18px;
+  height: 3px;
+  border-radius: 2px;
+}
+.swatch.stroke { background: #e3b341; }
+.swatch.segment { background: #a371f7; }
+.swatch.hub { background: rgba(76, 141, 255, 0.35); height: 10px; }
+.swatch.top { background: #f85149; }
+.swatch.bottom { background: #3fb950; }
+.swatch.up { background: #f85149; }
+.swatch.down { background: #3fb950; }
+
 /* ===== 主页 ===== */
 .home {
   max-width: 720px;

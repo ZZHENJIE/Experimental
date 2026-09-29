@@ -1,75 +1,118 @@
-# React + TypeScript + Vite
+## 核心功能需求
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+### 1. 数据处理层（纯函数，与 UI 解耦）
 
-Currently, two official plugins are available:
+#### 1.1 K 线包含关系处理
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- 输入：原始 K 线数组 `[{time, open, high, low, close}]`
+- 规则：相邻两根 K 线，若一根的 high/low 完全包含另一根，则合并为一根
+  - 向上处理：取两者 high 的较大值、low 的较大值
+  - 向下处理：取两者 high 的较小值、low 的较小值
+  - 方向由前一根合并后的 K 线走势决定
+- 输出：合并后的 K 线数组，保留原始索引映射关系
 
-## React Compiler
+#### 1.2 分型识别
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- 在合并后的 K 线上识别顶分型和底分型
+- **顶分型**：中间 K 线的 high 最高，且 low 也最高
+- **底分型**：中间 K 线的 low 最低，且 high 也最低
+- 输出：`[{index, time, price, type: 'top' | 'bottom'}]`
 
-## Expanding the ESLint configuration
+#### 1.3 笔的识别
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+- 规则（**明确采用新笔定义**）：
+  - 相邻两个分型必须是**一顶一底**交替
+  - 两个分型之间（含分型本身）至少间隔 **5 根 K 线**
+  - 顶分型价格必须高于底分型价格
+- 算法：
+  - 从第一个有效分型开始，向后寻找满足条件的下一个异类分型
+  - 不满足间隔或价格条件的分型跳过，继续向后找
+  - 直到遍历完所有分型
+- 输出：`[{startTime, startPrice, endTime, endPrice, direction: 'up' | 'down'}]`
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+#### 1.4 线段识别（可选，第二阶段）
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+- 基于笔的序列，按特征序列判断线段终结
+- 简化版：连续三笔有重叠 → 构成线段
+- 输出：线段端点数组
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+#### 1.5 中枢识别
 
-```
+- 基于连续三笔的重叠区间
+- 中枢区间 = `[max(三笔的低点), min(三笔的高点)]`
+- 若 max < min，则存在有效中枢
+- 输出：`[{startTime, endTime, high, low}]`
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+---
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+### 2. 图表渲染层
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+#### 2.1 K 线主图
 
-```
+- 使用 lightweight-charts 的 `CandlestickSeries` 渲染原始 K 线
+- 支持缩放、平移
+
+#### 2.2 笔的绘制
+
+- 用 `LineSeries` 绘制笔的折线
+- 连接所有笔的端点，形成连续折线
+- 颜色区分：向上笔和向下笔可用不同颜色（可选）
+
+#### 2.3 分型标注（可选）
+
+- 在顶分型/底分型位置添加标记
+- 用 `setMarkers` 在对应 K 线上标注
+
+#### 2.4 中枢绘制
+
+- lightweight-charts 原生不支持矩形，需用以下方案之一：
+  - 方案 A：用两条 `createPriceLine` 画中枢上下沿
+  - 方案 B：用自定义 Primitive 画矩形（推荐，视觉更清晰）
+- 中枢区间用半透明色块表示
+
+#### 2.5 线段绘制（可选）
+
+- 用另一条 `LineSeries` 绘制线段，样式区别于笔
+
+---
+
+### 3. UI 交互层
+
+- **数据输入**：提供一个文本框或文件上传，支持粘贴 JSON 格式 K 线数据
+- **参数配置**：
+  - 笔的最小 K 线间隔（默认 5，可调）
+  - 是否显示分型标记
+  - 是否显示线段
+  - 是否显示中枢
+- **图例**：说明各颜色线条代表的含义
+- **重置/重新计算**按钮
+
+---
+
+## 实现优先级
+
+1. **P0**：K 线渲染 + 包含处理 + 分型识别 + 笔识别 + 笔绘制
+2. **P1**：中枢识别 + 中枢绘制
+3. **P2**：线段识别 + 线段绘制 + 分型标记
+4. **P3**：数据 API 接入、多周期切换、买卖点标注
+
+---
+
+## 注意事项
+
+- 所有缠论算法必须是**纯函数**，输入输出明确，方便单元测试
+- 包含关系处理要保留**原始 K 线索引映射**，否则分型时间戳会错位
+- lightweight-charts 的 time 字段要求是 **Unix 时间戳（秒）** 或 `{year, month, day}` 格式，注意转换
+- 中枢的矩形绘制需要用自定义 Primitive，lightweight-charts 没有原生矩形 API
+- 建议先用手工构造的小数据集（20-30 根 K 线）验证画笔逻辑，再接入真实数据
+
+---
+
+## 验收标准
+
+- 输入一段 K 线数据，能正确识别出所有满足条件的笔
+- 笔的折线在图表上连续、无断裂、无多余连接
+- 中枢区间与实际三笔重叠区间一致
+- 参数调整后能实时重新计算并刷新图表
+
+---
