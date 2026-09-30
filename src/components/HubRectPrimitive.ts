@@ -9,18 +9,21 @@ import type {
   Time,
 } from "lightweight-charts";
 import type { CanvasRenderingTarget2D } from "fancy-canvas";
-import type { Hub } from "../lib/chan/types";
+import type { ZhongShu } from "../lib/chan/types";
 
 /**
- * 中枢矩形绘制 Primitive（lightweight-charts 无原生矩形 API）。
- * 以半透明色块 + 上下沿描边绘制中枢区间，zOrder 为 bottom（画在 K 线下方）。
+ * 中枢矩形绘制 Primitive（lightweight-charts 无原生矩形 API，需求 5.4）。
+ * 以半透明色块 + 1px 边框绘制 [ZD, ZG] 区间，横向锚定 startTime → endTime，
+ * 纵向锚定 zd / zg，缩放平移自动跟随；zOrder 为 bottom（画在 K 线下方）。
+ * 延伸的中枢只画一个矩形（endTime 随延伸向右扩展）。
  */
 export class HubRectPrimitive implements ISeriesPrimitive<Time> {
-  private _hubs: Hub[] = [];
+  private _zhongshus: ZhongShu[] = [];
   private _params: SeriesAttachedParameter<Time, SeriesType> | null = null;
   private _paneView: IPrimitivePaneView;
+  private _rendererCache: IPrimitivePaneRenderer | null = null;
 
-  constructor(fillColor = "rgba(76, 141, 255, 0.10)", borderColor = "rgba(76, 141, 255, 0.45)") {
+  constructor(fillColor = "rgba(255, 193, 7, 0.15)", borderColor = "#ffc107") {
     this._fillColor = fillColor;
     this._borderColor = borderColor;
     this._paneView = {
@@ -31,10 +34,9 @@ export class HubRectPrimitive implements ISeriesPrimitive<Time> {
 
   private _fillColor: string;
   private _borderColor: string;
-  private _rendererCache: IPrimitivePaneRenderer | null = null;
 
-  setHubs(hubs: Hub[]): void {
-    this._hubs = hubs;
+  setZhongShus(zhongshus: ZhongShu[]): void {
+    this._zhongshus = zhongshus;
     this._params?.requestUpdate();
   }
 
@@ -69,7 +71,7 @@ export class HubRectPrimitive implements ISeriesPrimitive<Time> {
 
   private _draw(target: CanvasRenderingTarget2D): void {
     const params = this._params;
-    if (!params || this._hubs.length === 0) return;
+    if (!params || this._zhongshus.length === 0) return;
     const { chart, series } = params as {
       chart: IChartApi;
       series: ISeriesApi<SeriesType>;
@@ -81,39 +83,33 @@ export class HubRectPrimitive implements ISeriesPrimitive<Time> {
       const ts = chart.timeScale();
       const visible = ts.getVisibleRange();
 
-      for (const hub of this._hubs) {
-        const yHigh = series.priceToCoordinate(hub.high);
-        const yLow = series.priceToCoordinate(hub.low);
-        if (yHigh === null || yLow === null) continue;
-
-        const x1raw = ts.timeToCoordinate(hub.startTime as Time);
-        const x2raw = ts.timeToCoordinate(hub.endTime as Time);
+      for (const zs of this._zhongshus) {
+        const yZg = series.priceToCoordinate(zs.zg);
+        const yZd = series.priceToCoordinate(zs.zd);
+        if (yZg === null || yZd === null) continue;
 
         // 区间整体在可视范围外 → 跳过（本应用 UTCTimestamp，可直接按数值比较）
         if (visible) {
-          if (hub.endTime < (visible.from as number)) continue;
-          if (hub.startTime > (visible.to as number)) continue;
+          if (zs.endTime < (visible.from as number)) continue;
+          if (zs.startTime > (visible.to as number)) continue;
         }
 
+        const x1raw = ts.timeToCoordinate(zs.startTime as Time);
+        const x2raw = ts.timeToCoordinate(zs.endTime as Time);
         // 一端在可视范围外 → 裁剪到画布边缘
         const x1 = x1raw ?? 0;
         const x2 = x2raw ?? width;
         if (x2 <= x1) continue;
 
-        const top = Math.min(yHigh, yLow);
-        const height = Math.abs(yLow - yHigh);
+        const top = Math.min(yZg, yZd);
+        const height = Math.abs(yZd - yZg);
 
         ctx.fillStyle = this._fillColor;
         ctx.fillRect(x1, top, x2 - x1, height);
+
         ctx.strokeStyle = this._borderColor;
         ctx.lineWidth = 1;
-        // 上下沿描边
-        ctx.beginPath();
-        ctx.moveTo(x1, top + 0.5);
-        ctx.lineTo(x2, top + 0.5);
-        ctx.moveTo(x1, top + height - 0.5);
-        ctx.lineTo(x2, top + height - 0.5);
-        ctx.stroke();
+        ctx.strokeRect(x1 + 0.5, top + 0.5, x2 - x1 - 1, Math.max(1, height - 1));
       }
     });
   }

@@ -169,9 +169,23 @@ input:hover:not(:focus) { border-color: #3d444d; }
 .chan-controls .field.num {
   flex: 0 0 160px;
 }
-.chan-controls input[type="number"] {
+.chan-controls input[type="number"],
+.chan-controls select {
   width: 100%;
 }
+
+select {
+  background: #0e1117;
+  color: #e6e8eb;
+  border: 1px solid #2a3038;
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 14px;
+  outline: none;
+  cursor: pointer;
+}
+select:focus { border-color: #4c8dff; }
+select:hover:not(:focus) { border-color: #3d444d; }
 
 .toggle {
   display: flex;
@@ -239,9 +253,10 @@ input:hover:not(:focus) { border-color: #3d444d; }
   height: 3px;
   border-radius: 2px;
 }
-.swatch.stroke { background: #e3b341; }
-.swatch.segment { background: #a371f7; }
-.swatch.hub { background: rgba(76, 141, 255, 0.35); height: 10px; }
+.swatch.bi-up { background: #ef5350; }
+.swatch.bi-down { background: #26a69a; }
+.swatch.segment { background: #2962ff; }
+.swatch.hub { background: rgba(255, 193, 7, 0.35); height: 10px; }
 .swatch.top { background: #f85149; }
 .swatch.bottom { background: #3fb950; }
 .swatch.up { background: #f85149; }

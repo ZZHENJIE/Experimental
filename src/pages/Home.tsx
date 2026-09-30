@@ -19,7 +19,7 @@ const TOOLS: Tool[] = [
     path: "/tools/chan-kline",
     icon: "🕯️",
     title: "缠论 K 线图",
-    desc: "SOXL 5 分钟 K 线：包含处理、分型、笔（新笔）、线段与中枢识别及可视化。",
+    desc: "SOXL 5 分钟 K 线：包含处理、分型、笔（严格 / 新笔）、线段与中枢识别及可视化。",
   },
 ];
 
